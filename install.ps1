@@ -95,7 +95,7 @@ function Deny-Install {
     )
 
     Write-InstallInfo -String $message -ForegroundColor DarkRed
-    Write-InstallInfo "Abort."
+    Write-InstallInfo 'Abort.'
 
     # Don't abort if invoked with iex that would close the PS session
     if ($IS_EXECUTED_FROM_IEX) {
@@ -107,7 +107,7 @@ function Deny-Install {
 
 function Test-ValidateParameter {
     if ($null -eq $Proxy -and ($null -ne $ProxyCredential -or $ProxyUseDefaultCredentials)) {
-        Deny-Install "Provide a valid proxy URI for the -Proxy parameter when using the -ProxyCredential or -ProxyUseDefaultCredentials."
+        Deny-Install 'Provide a valid proxy URI for the -Proxy parameter when using the -ProxyCredential or -ProxyUseDefaultCredentials.'
     }
 
     if ($ProxyUseDefaultCredentials -and $null -ne $ProxyCredential) {
@@ -124,12 +124,12 @@ function Test-IsAdministrator {
 function Test-Prerequisite {
     # Scoop requires PowerShell 5 at least
     if (($PSVersionTable.PSVersion.Major) -lt 5) {
-        Deny-Install "PowerShell 5 or later is required to run Scoop. Go to https://microsoft.com/powershell to get the latest version of PowerShell."
+        Deny-Install 'PowerShell 5 or later is required to run Scoop. Go to https://microsoft.com/powershell to get the latest version of PowerShell.'
     }
 
     # Scoop requires TLS 1.2 SecurityProtocol, which exists in .NET Framework 4.5+
     if ([System.Enum]::GetNames([System.Net.SecurityProtocolType]) -notcontains 'Tls12') {
-        Deny-Install "Scoop requires .NET Framework 4.5+ to work. Go to https://microsoft.com/net/download to get the latest version of .NET Framework."
+        Deny-Install 'Scoop requires .NET Framework 4.5+ to work. Go to https://microsoft.com/net/download to get the latest version of .NET Framework.'
     }
 
     # Ensure Robocopy.exe is accessible
@@ -139,13 +139,13 @@ function Test-Prerequisite {
 
     # Detect if RunAsAdministrator, there is no need to run as administrator when installing Scoop.
     if (!$RunAsAdmin -and (Test-IsAdministrator)) {
-        Deny-Install "Running the installer as administrator is disabled by default, see https://github.com/ScoopInstaller/Install#for-admin for details."
+        Deny-Install 'Running the installer as administrator is disabled by default, see https://github.com/ScoopInstaller/Install#for-admin for details.'
     }
 
     # Show notification to change execution policy
     $allowedExecutionPolicy = @('Unrestricted', 'RemoteSigned', 'ByPass')
     if ((Get-ExecutionPolicy).ToString() -notin $allowedExecutionPolicy) {
-        Deny-Install "PowerShell requires an execution policy in [$($allowedExecutionPolicy -join ", ")] to run Scoop. For example, to set the execution policy to 'RemoteSigned' please run 'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser'."
+        Deny-Install "PowerShell requires an execution policy in [$($allowedExecutionPolicy -join ', ')] to run Scoop. For example, to set the execution policy to 'RemoteSigned' please run 'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser'."
     }
 
     # Test if scoop is installed, by checking if scoop command exists.
@@ -168,7 +168,7 @@ function Optimize-SecurityProtocol {
         # Set to TLS 1.2 (3072), then TLS 1.1 (768), and TLS 1.0 (192). Ssl3 has been superseded,
         # https://docs.microsoft.com/en-us/dotnet/api/system.net.securityprotocoltype?view=netframework-4.5
         [System.Net.ServicePointManager]::SecurityProtocol = 3072 -bor 768 -bor 192
-        Write-Verbose "SecurityProtocol has been updated to support TLS 1.2"
+        Write-Verbose 'SecurityProtocol has been updated to support TLS 1.2'
     }
 }
 
@@ -181,7 +181,7 @@ function Get-Downloader {
     } elseif ($Proxy) {
         # Prepend protocol if not provided
         if (!$Proxy.IsAbsoluteUri) {
-            $Proxy = New-Object System.Uri("http://" + $Proxy.OriginalString)
+            $Proxy = New-Object System.Uri('http://' + $Proxy.OriginalString)
         }
 
         $Proxy = New-Object System.Net.WebProxy($Proxy)
@@ -268,7 +268,7 @@ function Expand-ZipArchive {
 function Out-UTF8File {
     param(
         [Parameter(Mandatory = $True, Position = 0)]
-        [Alias("Path")]
+        [Alias('Path')]
         [String] $FilePath,
         [Switch] $Append,
         [Switch] $NoNewLine,
@@ -293,7 +293,7 @@ function Out-UTF8File {
 }
 
 function Import-ScoopShim {
-    Write-InstallInfo "Creating shim..."
+    Write-InstallInfo 'Creating shim...'
     # The scoop executable
     $path = "$SCOOP_APP_DIR\bin\scoop.ps1"
 
@@ -327,36 +327,39 @@ function Import-ScoopShim {
         )
     }
     $ps1text -join "`r`n" | Out-UTF8File "$shim.ps1"
+    Write-Verbose "Shim 'scoop.ps1' created at $shim.ps1"
 
     # make ps1 accessible from cmd.exe
     @(
         "@rem $absolutePath",
-        "@echo off",
-        "setlocal enabledelayedexpansion",
-        "set args=%*",
-        ":: replace problem characters in arguments",
+        '@echo off',
+        'setlocal enabledelayedexpansion',
+        'set args=%*',
+        ':: replace problem characters in arguments',
         "set args=%args:`"='%",
         "set args=%args:(=``(%",
         "set args=%args:)=``)%",
         "set invalid=`"='",
-        "if !args! == !invalid! ( set args= )",
-        "where /q pwsh.exe",
-        "if %errorlevel% equ 0 (",
+        'if !args! == !invalid! ( set args= )',
+        'where /q pwsh.exe',
+        'if %errorlevel% equ 0 (',
         "    pwsh -noprofile -ex unrestricted -file `"$absolutePath`" $arg %args%",
-        ") else (",
+        ') else (',
         "    powershell -noprofile -ex unrestricted -file `"$absolutePath`" $arg %args%",
-        ")"
+        ')'
     ) -join "`r`n" | Out-UTF8File "$shim.cmd"
+    Write-Verbose "Shim 'scoop.cmd' created at $shim.cmd"
 
     @(
-        "#!/bin/sh",
+        '#!/bin/sh',
         "# $absolutePath",
-        "if command -v pwsh.exe > /dev/null 2>&1; then",
+        'if command -v pwsh.exe > /dev/null 2>&1; then',
         "    pwsh.exe -noprofile -ex unrestricted -file `"$absolutePath`" $arg `"$@`"",
-        "else",
+        'else',
         "    powershell.exe -noprofile -ex unrestricted -file `"$absolutePath`" $arg `"$@`"",
-        "fi"
+        'fi'
     ) -join "`n" | Out-UTF8File $shim -NoNewLine
+    Write-Verbose "Shim 'scoop' created at $shim"
 }
 
 function Get-Env {
@@ -415,7 +418,7 @@ function Add-ShimsDirToPath {
         }
 
         if (!($h -eq '\')) {
-            $friendlyPath = "$SCOOP_SHIMS_DIR" -Replace ([Regex]::Escape($h)), "~\"
+            $friendlyPath = "$SCOOP_SHIMS_DIR" -Replace ([Regex]::Escape($h)), '~\'
             Write-InstallInfo "Adding $friendlyPath to your path."
         } else {
             Write-InstallInfo "Adding $SCOOP_SHIMS_DIR to your path."
@@ -425,6 +428,7 @@ function Add-ShimsDirToPath {
         Write-Env 'PATH' "$SCOOP_SHIMS_DIR;$userEnvPath"
         # For current session
         $env:PATH = "$SCOOP_SHIMS_DIR;$env:PATH"
+        Write-Verbose "`$env:PATH: $env:PATH"
     }
 }
 
@@ -519,7 +523,7 @@ function Add-DefaultConfig {
 }
 
 function Install-Scoop {
-    Write-InstallInfo "Initializing..."
+    Write-InstallInfo 'Initializing...'
     # Validate install parameters
     Test-ValidateParameter
     # Check prerequisites
@@ -528,7 +532,7 @@ function Install-Scoop {
     Optimize-SecurityProtocol
 
     # Download scoop zip from GitHub
-    Write-InstallInfo "Downloading..."
+    Write-InstallInfo 'Downloading...'
     $downloader = Get-Downloader
     # 1. download scoop
     $scoopZipfile = "$SCOOP_APP_DIR\scoop.zip"
@@ -546,7 +550,7 @@ function Install-Scoop {
     $downloader.downloadFile($SCOOP_MAIN_BUCKET_REPO, $scoopMainZipfile)
 
     # Extract files from downloaded zip
-    Write-InstallInfo "Extracting..."
+    Write-InstallInfo 'Extracting...'
     # 1. extract scoop
     $scoopUnzipTempDir = "$SCOOP_APP_DIR\_tmp"
     Write-Verbose "Extracting $scoopZipfile to $scoopUnzipTempDir"
@@ -571,22 +575,25 @@ function Install-Scoop {
     # Setup initial configuration of Scoop
     Add-DefaultConfig
 
-    Write-InstallInfo "Scoop was installed successfully!" -ForegroundColor DarkGreen
+    Write-InstallInfo 'Scoop was installed successfully!' -ForegroundColor DarkGreen
     Write-InstallInfo "Type 'scoop help' for instructions."
 }
 
 function Write-DebugInfo {
     param($BoundArgs)
 
-    Write-Verbose "-------- PSBoundParameters --------"
+    Write-Verbose '-------- Machine Information --------'
+    Write-Verbose "`$PSVersionTable:"
+    $PSVersionTable.GetEnumerator() | ForEach-Object { Write-Verbose "$($_.Key), $($_.Value)" }
+    Write-Verbose '-------- PSBoundParameters --------'
     $BoundArgs.GetEnumerator() | ForEach-Object { Write-Verbose $_ }
-    Write-Verbose "-------- Environment Variables --------"
+    Write-Verbose '-------- Environment Variables --------'
     Write-Verbose "`$env:USERPROFILE: $env:USERPROFILE"
     Write-Verbose "`$env:ProgramData: $env:ProgramData"
     Write-Verbose "`$env:SCOOP: $env:SCOOP"
     Write-Verbose "`$env:SCOOP_CACHE: $SCOOP_CACHE"
     Write-Verbose "`$env:SCOOP_GLOBAL: $env:SCOOP_GLOBAL"
-    Write-Verbose "-------- Selected Variables --------"
+    Write-Verbose '-------- Selected Variables --------'
     Write-Verbose "SCOOP_DIR: $SCOOP_DIR"
     Write-Verbose "SCOOP_CACHE_DIR: $SCOOP_CACHE_DIR"
     Write-Verbose "SCOOP_GLOBAL_DIR: $SCOOP_GLOBAL_DIR"
@@ -613,8 +620,8 @@ $SCOOP_CONFIG_HOME = $env:XDG_CONFIG_HOME, "$env:USERPROFILE\.config" | Select-O
 $SCOOP_CONFIG_FILE = "$SCOOP_CONFIG_HOME\scoop\config.json"
 
 # TODO: Use a specific version of Scoop and the main bucket
-$SCOOP_PACKAGE_REPO = "https://github.com/ScoopInstaller/Scoop/archive/master.zip"
-$SCOOP_MAIN_BUCKET_REPO = "https://github.com/ScoopInstaller/Main/archive/master.zip"
+$SCOOP_PACKAGE_REPO = 'https://github.com/ScoopInstaller/Scoop/archive/master.zip'
+$SCOOP_MAIN_BUCKET_REPO = 'https://github.com/ScoopInstaller/Main/archive/master.zip'
 
 # Quit if anything goes wrong
 $oldErrorActionPreference = $ErrorActionPreference
