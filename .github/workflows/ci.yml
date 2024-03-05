@@ -28,6 +28,8 @@ jobs:
       - name: Test Scoop Install command
         shell: powershell
         run: |
+          $DebugPreference = 'Continue'
+          $VerbosePreference = 'Continue'
           ./install.ps1 -RunAsAdmin
           echo "$Env:USERPROFILE\scoop\shims" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Test scoop command availability
@@ -55,6 +57,8 @@ jobs:
       - name: Test Scoop Install command
         shell: pwsh
         run: |
+          $DebugPreference = 'Continue'
+          $VerbosePreference = 'Continue'
           ./install.ps1 -RunAsAdmin
           echo "~\scoop\shims" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Test scoop command availability
@@ -71,6 +75,8 @@ jobs:
       - name: Test Scoop Install command
         shell: pwsh
         run: |
+          $DebugPreference = 'Continue'
+          $VerbosePreference = 'Continue'
           git config --global protocol.https.allow never
           ./install.ps1 -RunAsAdmin
           echo "~\scoop\shims" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
