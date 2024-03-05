@@ -24,6 +24,7 @@ jobs:
         run: |
           $DebugPreference = 'Continue'
           $VerbosePreference = 'Continue'
+          if (Test-Path "$Env:USERPROFILE\scoop") { Get-ChildItem "$Env:USERPROFILE\scoop" }
           ./test/bin/test.ps1
       - name: Test Scoop Install command
         shell: powershell
