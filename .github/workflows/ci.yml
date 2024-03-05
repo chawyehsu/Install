@@ -21,7 +21,10 @@ jobs:
           shell: powershell
       - name: Test Scoop Installer
         shell: powershell
-        run: ./test/bin/test.ps1
+        run: |
+          $DebugPreference = 'Continue'
+          $VerbosePreference = 'Continue'
+          ./test/bin/test.ps1
       - name: Test Scoop Install command
         shell: powershell
         run: |
@@ -45,7 +48,10 @@ jobs:
           shell: pwsh
       - name: Test Scoop Installer
         shell: pwsh
-        run: ./test/bin/test.ps1
+        run: |
+          $DebugPreference = 'Continue'
+          $VerbosePreference = 'Continue'
+          ./test/bin/test.ps1
       - name: Test Scoop Install command
         shell: pwsh
         run: |
